@@ -1,5 +1,7 @@
 import json
+from datetime import date
 
+from src.move import get_move_evidence
 from src.news import clean_headlines, fetch_headlines, get_company_name
 from src.search import search_companies
 from src.sentiment import (
@@ -50,6 +52,24 @@ TOOLS = [
             "required": ["ticker"],
         },
     },
+    {
+        "name": "explain_move",
+        "description": (
+            "Gather evidence about how a stock moved on one past trading day: "
+            "its percent change, the market index change, the sector index "
+            "change, a market-wide/sector-wide/stock-specific classification, "
+            "a volume ratio, and headlines from that window. Use it when the "
+            "user asks why a stock rose or fell on a specific date."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "ticker": {"type": "string", "description": "Ticker symbol, e.g. 'TCS.NS'"},
+                "date": {"type": "string", "description": "The trading day as YYYY-MM-DD"},
+            },
+            "required": ["ticker", "date"],
+        },
+    },
 ]
 
 
@@ -75,6 +95,18 @@ def _news_sentiment(ticker: str) -> dict:
     return result
 
 
+def _explain_move(ticker: str, day_text: str) -> dict:
+    evidence = get_move_evidence(ticker, date.fromisoformat(day_text))
+    evidence["headlines"] = [
+        {"title": h["title"], "source": h["source"]} for h in evidence["headlines"][:8]
+    ]
+    evidence["note"] = (
+        "Evidence only. These figures and headlines coincided with the move; "
+        "they do not prove what caused it."
+    )
+    return evidence
+
+
 def run_tool(name: str, args: dict) -> str:
     """Run a tool by name and return its result as a JSON string."""
     try:
@@ -84,6 +116,8 @@ def run_tool(name: str, args: dict) -> str:
             data = get_stock_summary(args["ticker"])
         elif name == "get_news_sentiment":
             data = _news_sentiment(args["ticker"])
+        elif name == "explain_move":
+            data = _explain_move(args["ticker"], args["date"])
         else:
             return json.dumps({"error": f"Unknown tool '{name}'"})
         return json.dumps(data, default=str)

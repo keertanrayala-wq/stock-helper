@@ -12,12 +12,18 @@ def test_tool_names():
         "search_company",
         "get_stock_summary",
         "get_news_sentiment",
+        "explain_move",
     }
 
 
 def test_openai_tool_conversion():
     from src.assistant import OPENAI_TOOLS
 
-    assert len(OPENAI_TOOLS) == 3
+    assert len(OPENAI_TOOLS) == 4
     assert OPENAI_TOOLS[0]["type"] == "function"
     assert "parameters" in OPENAI_TOOLS[0]["function"]
+
+
+def test_explain_move_rejects_bad_date():
+    result = json.loads(run_tool("explain_move", {"ticker": "TCS.NS", "date": "not-a-date"}))
+    assert "error" in result
