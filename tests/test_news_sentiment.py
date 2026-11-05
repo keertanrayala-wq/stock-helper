@@ -42,3 +42,27 @@ def test_listing_pages_are_filtered():
         {"title": "TCS wins big deal - Other Site"},
     ]
     assert len(clean_headlines(items)) == 1
+
+
+def test_clean_company_name():
+    from src.news import clean_company_name
+
+    assert clean_company_name("Tata Consultancy Services Limited") == "Tata Consultancy Services"
+    assert clean_company_name("Apple Inc.") == "Apple"
+
+
+def test_query_uses_company_name():
+    assert (
+        ticker_to_query("TCS.NS", "Tata Consultancy Services")
+        == '"Tata Consultancy Services" stock'
+    )
+
+
+def test_describe_sentiment():
+    from src.sentiment import describe_sentiment
+
+    few = {"count": 2, "mean_score": 0.9}
+    assert describe_sentiment(few) == "Not enough recent news to score"
+    assert describe_sentiment({"count": 10, "mean_score": 0.3}) == "Mostly positive"
+    assert describe_sentiment({"count": 10, "mean_score": -0.3}) == "Mostly negative"
+    assert describe_sentiment({"count": 10, "mean_score": 0.0}) == "Mixed or neutral"

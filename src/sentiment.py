@@ -45,3 +45,18 @@ def aggregate_sentiment(scored: list[dict]) -> dict:
         "negative": sum(s["label"] == "negative" for s in scored),
         "neutral": sum(s["label"] == "neutral" for s in scored),
     }
+
+
+MIN_HEADLINES = 5
+
+
+def describe_sentiment(summary: dict) -> str:
+    """Turn an aggregate summary into a short label for the user."""
+    if summary["count"] < MIN_HEADLINES or summary["mean_score"] is None:
+        return "Not enough recent news to score"
+    mean = summary["mean_score"]
+    if mean >= 0.15:
+        return "Mostly positive"
+    if mean <= -0.15:
+        return "Mostly negative"
+    return "Mixed or neutral"
