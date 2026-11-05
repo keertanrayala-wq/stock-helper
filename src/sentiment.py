@@ -60,3 +60,10 @@ def describe_sentiment(summary: dict) -> str:
     if mean <= -0.15:
         return "Mostly negative"
     return "Mixed or neutral"
+
+
+def is_available() -> bool:
+    """True if the libraries needed to run FinBERT are installed."""
+    from importlib.util import find_spec
+
+    return find_spec("transformers") is not None and find_spec("torch") is not None

@@ -66,3 +66,9 @@ def test_describe_sentiment():
     assert describe_sentiment({"count": 10, "mean_score": 0.3}) == "Mostly positive"
     assert describe_sentiment({"count": 10, "mean_score": -0.3}) == "Mostly negative"
     assert describe_sentiment({"count": 10, "mean_score": 0.0}) == "Mixed or neutral"
+
+
+def test_is_available_returns_bool():
+    from src.sentiment import is_available
+
+    assert isinstance(is_available(), bool)

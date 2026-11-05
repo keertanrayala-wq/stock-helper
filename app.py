@@ -1,8 +1,16 @@
+import pandas as pd
 import streamlit as st
 
 from src.charts import candlestick_chart
 from src.data import get_price_history
 from src.explain import explain_macd, explain_rsi, explain_trend
+from src.news import clean_headlines, fetch_headlines, get_company_name
+from src.sentiment import (
+    aggregate_sentiment,
+    describe_sentiment,
+    is_available,
+    score_headlines,
+)
 from src.summary import summarize
 
 st.set_page_config(page_title="Stock Helper", layout="wide")
@@ -13,6 +21,15 @@ st.caption("Educational only. This is not financial advice.")
 @st.cache_data(ttl=900)
 def load(ticker: str, period: str):
     return get_price_history(ticker, period)
+
+
+@st.cache_data(ttl=1800, show_spinner="Reading the news...")
+def load_news(ticker: str):
+    items = clean_headlines(fetch_headlines(ticker))
+    scored = None
+    if items and is_available():
+        scored = score_headlines([i["title"] for i in items])
+    return items, scored
 
 
 def fmt(value, prefix=""):
@@ -46,3 +63,40 @@ if ticker:
     st.write(explain_rsi(s["rsi_14"]))
     st.write(explain_macd(s["macd"], s["macd_signal"]))
     st.write(explain_trend(s["last_close"], s["sma_50"], s["sma_200"]))
+
+    st.subheader("Recent news")
+    name = get_company_name(ticker)
+    if name:
+        st.caption(f"Searching news for: {name}")
+
+    items, scored = load_news(ticker)
+    if not items:
+        st.info("No recent headlines found for this stock.")
+    else:
+        if scored is not None:
+            summary_s = aggregate_sentiment(scored)
+            c1, c2, c3, c4 = st.columns(4)
+            c1.metric("News sentiment", describe_sentiment(summary_s))
+            c2.metric("Positive", summary_s["positive"])
+            c3.metric("Neutral", summary_s["neutral"])
+            c4.metric("Negative", summary_s["negative"])
+            rows = [
+                {
+                    "Sentiment": sc["label"],
+                    "Score": sc["score"],
+                    "Headline": it["title"],
+                    "Source": it["source"],
+                }
+                for it, sc in zip(items, scored)
+            ]
+            st.caption(
+                "Scores come from FinBERT, a financial-text model. "
+                "They are noisy and are not a prediction."
+            )
+        else:
+            rows = [{"Headline": it["title"], "Source": it["source"]} for it in items]
+            st.caption(
+                "Sentiment scoring is not available in this deployment, "
+                "so only headlines are shown."
+            )
+        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
