@@ -48,3 +48,4 @@ uvicorn==0.54.0
 websockets==17.4
 yfinance==1.8.0
 feedparser
+openai
