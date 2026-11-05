@@ -1,7 +1,8 @@
+from src.charts import candlestick_chart
 from src.data import get_price_history
-from src.indicators import rsi, sma
+from src.summary import get_stock_summary
+
+print(get_stock_summary("TCS.NS"))
 
 df = get_price_history("TCS.NS")
-df["SMA50"] = sma(df["Close"], 50)
-df["RSI"] = rsi(df["Close"])
-print(df.tail())
+candlestick_chart(df, "TCS.NS").show()

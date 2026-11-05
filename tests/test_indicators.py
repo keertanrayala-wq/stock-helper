@@ -15,3 +15,11 @@ def test_rsi_bounds():
     result = rsi(prices).dropna()
     assert (result >= 0).all() and (result <= 100).all()
     assert result.iloc[-1] > 90  # strong uptrend -> high RSI
+
+
+def test_macd_flat_prices_is_zero():
+    from src.indicators import macd
+
+    prices = pd.Series([100.0] * 60)
+    result = macd(prices)
+    assert result["macd"].abs().max() < 1e-9
