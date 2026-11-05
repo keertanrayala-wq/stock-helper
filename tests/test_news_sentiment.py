@@ -27,3 +27,18 @@ def test_aggregate_sentiment():
 
 def test_aggregate_empty():
     assert aggregate_sentiment([])["count"] == 0
+
+
+def test_listing_pages_are_filtered():
+    from src.news import clean_headlines, is_listing_page
+
+    assert is_listing_page("TCS Share Price - Upstox")
+    assert is_listing_page("TCS Share Price Prediction for Monday - Univest")
+    assert not is_listing_page("TCS shares rally 6% after Q2 results - Inshorts")
+
+    items = [
+        {"title": "TCS Share Price - Upstox"},
+        {"title": "TCS wins big deal - Mint"},
+        {"title": "TCS wins big deal - Other Site"},
+    ]
+    assert len(clean_headlines(items)) == 1

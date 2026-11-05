@@ -1,8 +1,8 @@
-from src.news import fetch_headlines
+from src.news import clean_headlines, fetch_headlines
 from src.sentiment import aggregate_sentiment, score_headlines
 
-items = fetch_headlines("TCS.NS")
-print(f"Fetched {len(items)} headlines")
+items = clean_headlines(fetch_headlines("TCS.NS"))
+print(f"{len(items)} headlines after cleaning")
 
 scored = score_headlines([i["title"] for i in items])
 for s in scored:

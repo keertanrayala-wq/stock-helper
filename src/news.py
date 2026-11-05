@@ -30,3 +30,39 @@ def fetch_headlines(ticker: str, max_items: int = 20) -> list[dict]:
             }
         )
     return items
+
+
+_LISTING_PHRASES = (
+    "share price today",
+    "price prediction",
+    "stock price, news",
+    "quote & history",
+)
+
+
+def _base_title(title: str) -> str:
+    """Drop the trailing ' - Source' that Google News adds."""
+    return title.rsplit(" - ", 1)[0].strip()
+
+
+def is_listing_page(title: str) -> bool:
+    """True for price pages and prediction pages that are not real news."""
+    base = _base_title(title).lower()
+    if base.endswith("share price") or base.endswith("stock price"):
+        return True
+    return any(p in base for p in _LISTING_PHRASES)
+
+
+def clean_headlines(items: list[dict]) -> list[dict]:
+    """Remove listing pages and duplicate headlines."""
+    seen = set()
+    cleaned = []
+    for item in items:
+        if is_listing_page(item["title"]):
+            continue
+        key = _base_title(item["title"]).lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        cleaned.append(item)
+    return cleaned
