@@ -11,6 +11,7 @@ from src.sentiment import (
     is_available,
     score_headlines,
 )
+from src.search import format_option, search_companies
 from src.summary import summarize
 
 st.set_page_config(page_title="Stock Helper", layout="wide")
@@ -32,15 +33,32 @@ def load_news(ticker: str):
     return items, scored
 
 
+@st.cache_data(ttl=3600)
+def find_companies(query: str):
+    return search_companies(query)
+
+
 def fmt(value, prefix=""):
     return "n/a" if value is None else f"{prefix}{value:,.2f}"
 
 
 col_a, col_b = st.columns([2, 1])
-ticker = col_a.text_input(
-    "Ticker (e.g. TCS.NS, INFY.NS, RELIANCE.NS, AAPL)", "TCS.NS"
-).strip().upper()
+query = col_a.text_input(
+    "Search a company name or ticker (e.g. Wipro, Tata Consultancy, AAPL)",
+    "Tata Consultancy Services",
+).strip()
 period = col_b.selectbox("Time range", ["3mo", "6mo", "1y", "2y", "5y"], index=2)
+
+ticker = ""
+if query:
+    matches = find_companies(query)
+    if matches:
+        labels = {format_option(m): m["symbol"] for m in matches}
+        choice = st.selectbox("Pick the company", list(labels))
+        ticker = labels[choice]
+    else:
+        ticker = query.upper().replace(" ", "")
+        st.caption(f"No search matches, trying '{ticker}' as a ticker.")
 
 if ticker:
     try:
