@@ -1,0 +1,47 @@
+{
+ "generated": "2026-11-15",
+ "data_through": "2026-11-13",
+ "companies": 60,
+ "observations": 2247,
+ "dates": 40,
+ "pooled": {
+  "ex_1d": {
+   "days": 2188,
+   "signal_days": 1561,
+   "hits": 744,
+   "hit_rate": 0.477,
+   "base_rate_up": 0.466,
+   "p_value": 0.068,
+   "correlation": 0.011
+  },
+  "ex_5d": {
+   "days": 1954,
+   "signal_days": 1408,
+   "hits": 671,
+   "hit_rate": 0.477,
+   "base_rate_up": 0.42,
+   "p_value": 0.083,
+   "correlation": -0.02
+  }
+ },
+ "daily_ic": {
+  "ex_1d": {
+   "days": 39,
+   "mean_ic": 0.006,
+   "positive_days": 19,
+   "p_value": 1.0
+  },
+  "ex_5d": {
+   "days": 35,
+   "mean_ic": 0.002,
+   "positive_days": 19,
+   "p_value": 0.736
+  }
+ },
+ "permutation_ex_1d": {
+  "observed": 0.006,
+  "null_mean": 0.002,
+  "null_sd": 0.022,
+  "p_value": 0.801
+ }
+}
