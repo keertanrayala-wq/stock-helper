@@ -5,11 +5,12 @@ from datetime import date
 import openai
 from dotenv import load_dotenv
 
+from src.glossary import GLOSSARY_TOOL, lookup_term
 from src.tools import TOOLS, run_tool
 
 load_dotenv()
 
-MAX_STEPS = 6
+MAX_STEPS = 8
 MAX_TOOL_CHARS = 3000
 
 SYSTEM_PROMPT = """You are Stock Helper, an educational assistant for beginner investors.
@@ -22,16 +23,30 @@ Rules:
 - Do not imply a direction for the price (for example, room to rise or likely to fall). Indicators describe the past and present, not the future.
 - If the user asks whether to buy, sell, or hold something, begin your answer with one plain sentence saying you can't make that call for them. Then offer to explain what the data shows.
 - When the user asks why a stock moved on a particular day, call explain_move with the ticker and the date as YYYY-MM-DD. Work out relative dates like yesterday from today's date, which is given below.
-- For explain_move, do not add facts that are not in the tool result (for example, whether a dividend was paid). Do not interpret volume beyond saying it was higher or lower than usual. Mention a headline only if it clearly names the company itself, and skip headlines about other companies or general topics.
 - For explain_move, describe what coincided with the move: the stock's change, the market and sector changes, the classification, and any headlines that plausibly relate. Say coincided with or may be related to, never claim a cause as fact. Mention volume only if it is unusual (a ratio above about 1.5 or below about 0.7).
+- For explain_move, do not add facts that are not in the tool result (for example, whether a dividend was paid). Do not interpret volume beyond saying it was higher or lower than usual. Mention a headline only if it clearly names the company itself, and skip headlines about other companies or general topics.
 - If the move was market-wide or sector-wide, say so first. If no headline clearly relates to the move, say that no clear stock-specific news was found.
+- When the user asks what a finance term means, call explain_term and base your explanation on the definition it returns. If the term is not in the glossary, explain it in simple general words, include no specific numbers, and say it is a general explanation.
 - Explain indicators like RSI and MACD in simple language, and mention the currency of prices when relevant.
 - Keep answers short and clear. End with a one-line reminder that this is educational, not financial advice, when you discuss a specific stock.
 """
 
+BEGINNER_STYLE = """
+Teaching style (the user is new to investing):
+- Write for someone who has never invested. Use short sentences and plain words, and keep answers under about 200 words unless asked for more.
+- The first time you use a finance term (RSI, MACD, moving average, volume, overbought, and so on), define it in one simple sentence. Use explain_term for the definition, and call it at most twice per answer.
+- Use a simple everyday comparison when it helps, for example RSI is like a speedometer for recent price moves.
+- Structure stock answers as: (1) the short answer in one or two sentences, (2) the key numbers as a short list, each with its plain-English meaning, (3) what the data cannot tell you.
+- Do not use tables. Use short lists instead.
+- End by suggesting one simple follow-up question the user could ask next to learn more.
+"""
 
-def system_prompt() -> str:
-    return f"{SYSTEM_PROMPT}\nToday's date is {date.today().isoformat()}."
+
+def system_prompt(level: str = "beginner") -> str:
+    text = SYSTEM_PROMPT
+    if level == "beginner":
+        text += "\n" + BEGINNER_STYLE
+    return f"{text}\nToday's date is {date.today().isoformat()}."
 
 
 def to_openai_tools(tools: list) -> list:
@@ -49,7 +64,14 @@ def to_openai_tools(tools: list) -> list:
     ]
 
 
-OPENAI_TOOLS = to_openai_tools(TOOLS)
+OPENAI_TOOLS = to_openai_tools(TOOLS + [GLOSSARY_TOOL])
+
+
+def dispatch(name: str, args: dict) -> str:
+    """Run a tool, handling the glossary here and the rest in src.tools."""
+    if name == "explain_term":
+        return lookup_term(str(args.get("term", "")))
+    return run_tool(name, args)
 
 
 def get_model() -> str:
@@ -64,7 +86,7 @@ def get_client(api_key: str | None = None) -> openai.OpenAI:
     return openai.OpenAI(api_key=key, base_url=base_url)
 
 
-def chat(client, history: list, user_message: str):
+def chat(client, history: list, user_message: str, level: str = "beginner"):
     """Send a message, let the model call tools, and return the final answer.
 
     Returns (answer_text, updated_history, tool_calls) where tool_calls is a
@@ -76,7 +98,7 @@ def chat(client, history: list, user_message: str):
         try:
             response = client.chat.completions.create(
                 model=get_model(),
-                messages=[{"role": "system", "content": system_prompt()}] + messages,
+                messages=[{"role": "system", "content": system_prompt(level)}] + messages,
                 tools=OPENAI_TOOLS,
                 max_tokens=1024,
             )
@@ -119,7 +141,7 @@ def chat(client, history: list, user_message: str):
                 {
                     "role": "tool",
                     "tool_call_id": tc.id,
-                    "content": run_tool(tc.function.name, args)[:MAX_TOOL_CHARS],
+                    "content": dispatch(tc.function.name, args)[:MAX_TOOL_CHARS],
                 }
             )
     return "Sorry, I couldn't finish that. Please try a simpler question.", messages, calls

@@ -19,7 +19,7 @@ def test_tool_names():
 def test_openai_tool_conversion():
     from src.assistant import OPENAI_TOOLS
 
-    assert len(OPENAI_TOOLS) == 4
+    assert len(OPENAI_TOOLS) == 5
     assert OPENAI_TOOLS[0]["type"] == "function"
     assert "parameters" in OPENAI_TOOLS[0]["function"]
 
